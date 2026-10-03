@@ -138,6 +138,26 @@ cd web && go run .
 }
 ```
 
+### 上游 extend/httpserver 接口（1:1 挂载）
+
+`web/` 服务同时把本仓库 `extend/httpserver` 的全部路由**原样挂载**（同路径、同参数、同响应格式 `{"code":0,"msg":"ok","data":...}`），实现见 `web/upstream_api.go`。共 74 条：
+
+| 分类 | 路由 |
+|---|---|
+| 基础 | `/count` `/code` `/code/all` `/code/stocks` `/code/etfs` `/code/indexes` |
+| 行情 | `/quote` `/call_auction` `/gbbq` `/company/category` `/company/content` |
+| 分时/成交 | `/minute` `/minute/history` `/trade` `/trade/all` `/trade/history` `/trade/history/day` |
+| K线 | `/kline` `/kline/all` + minute/5minute/15minute/30minute/60minute/day/week/month/quarter/year 各带 `/all` 共 22 条 |
+| 指数 | `/index` `/index/all` `/index/minute` `/index/5minute` `/index/15minute` `/index/30minute` `/index/60minute` `/index/day` `/index/day/all` `/index/week/all` `/index/month/all` `/index/quarter/all` `/index/year/all` |
+| 板块/报表 | `/block/data` `/block/data/index` `/block/file` `/report/file` `/zhb/files` `/tdx/zs` `/tdx/bk` `/tdx/stat` `/tdx/stat2` `/tdx/xgsg` `/spblock` |
+| 扩展行情 | `/ex/markets` `/ex/count` `/ex/instruments` `/ex/quote` `/ex/quote_list` `/ex/bars` `/ex/minute` `/ex/minute/hist` `/ex/trade` `/ex/trade/hist` `/ex/bars/range` |
+
+说明：
+- 参数细节见 `extend/httpserver/handler.go`，如 `/count?exchange=sh`、`/quote?codes=sz000001,sh600519`、`/kline/day/all?code=sh600519`。
+- `/ex/*` 需要扩展行情连接（7727），启动时自动建立；连接失败自动降级为仅标准行情，不影响其余接口。
+- 例外：上游的 `GET /`（health）不挂载（`/` 保留静态图表页，健康检查用 `/api/health`）；`/finance`、`/tdx/hy` 沿用上方"新增接口"的本地实现（参数一致、字段为 DTO 格式）。
+- 端口：默认 `:8080`，可用环境变量 `PORT` 覆盖（如 `PORT=8082 go run .`）。
+
 ---
 
 ## 📦 板块与板块指数代码(id)

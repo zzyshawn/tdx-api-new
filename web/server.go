@@ -826,7 +826,16 @@ func main() {
 	http.HandleFunc("/tdx/hy", handleGetTdxHy)
 	http.HandleFunc("/finance", handleGetFinance)
 
-	port := ":8080"
+	// 上游 extend/httpserver 接口 1:1 挂载（/finance、/tdx/hy 用本地实现，详见 upstream_api.go）
+	mountUpstreamAPI()
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	if !strings.Contains(port, ":") {
+		port = ":" + port
+	}
 	log.Printf("服务启动成功，访问 http://localhost%s\n", port)
 	log.Fatal(http.ListenAndServe(port, nil))
 }

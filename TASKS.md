@@ -52,6 +52,16 @@
 4. **指数远古数据**：/api/index/all 的 1991/1994 年共 60 根 K 线 Volume 解码值与老版本不同（新库协议对远古数据解码差异），1995 年至今全部一致。
 5. **/api/tasks/pull-kline 的 tables**：新库 v1 PullKline 仅支持 day/minute（老库 KlineTableMap 还支持 minute5/hour/week 等粒度表）；传其他值现在返回"tables参数无效"（老默认值 day 不受影响）。任务 cancel 后当前轮会继续跑完（新库 Update 不感知 ctx）。
 
+## 六、上游 extend/httpserver 接口 1:1 挂载（2026-10-04 追加）
+
+- [x] 17. `extend/httpserver/server.go` 新增导出方法 `Handler()`（additive，返回已注册全部路由的 mux，供嵌入复用）
+- [x] 18. `web/upstream_api.go`：74 条上游路由 1:1 挂载（同路径/同参数/同响应格式），路由清单与 `registerRoutes` 逐条对应
+  - 扩展行情连接池（`WithExHqHosts(tdx.ExHosts...)`，7727）；启动连接失败自动降级为仅标准行情，不影响服务启动
+  - 上游连接池独立（poolSize=3，`WithRedial()`），与老接口的 client 互不影响
+- [x] 19. 端口支持 `PORT` 环境变量（缺省仍 `:8080`）
+- [x] 20. 实测：/count?exchange=sh、/quote?codes=多标的、/call_auction、/minute、/kline/day/all（6015 根）、/index/day/all（8736 根）、/code/all?exchange=sz（2MB）、/ex/markets、/spblock 全部 200 且格式为上游 `{"code":0,"msg":"ok",...}`；静态 UI `/` 与 /api/*、/tdx/hy、/finance 不受影响
+- 例外：`GET /`（上游 health）不挂载（`/` 保留静态 UI）；`/finance`、`/tdx/hy` 沿用本地 DTO 实现（参数一致）
+
 ## 测试环境备注
 
 - 本机无 Go 工具链，已装用户级 Go 1.24.6 到 `D:\6agents\workboddy-config\binaries\go\`（GOPROXY=goproxy.cn）

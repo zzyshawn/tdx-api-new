@@ -113,6 +113,11 @@ func New(opts ...Option) (*Server, error) {
 	return s, nil
 }
 
+// Handler 返回注册了全部路由的 http.Handler，供外部服务嵌入挂载复用
+func (s *Server) Handler() http.Handler {
+	return s.server.Handler
+}
+
 // Default 使用默认配置创建 HTTP 服务(开启断线重连)
 func Default(opts ...Option) (*Server, error) {
 	opts = append([]Option{WithOptions(tdx.WithRedial())}, opts...)
