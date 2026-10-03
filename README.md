@@ -73,6 +73,73 @@ func main() {
 
 ---
 
+## 🌐 HTTP API 服务 (web/)
+
+本仓库内置完整的 HTTP REST 服务（移植自 [tdx-api](https://github.com/zzyshawn/tdx-api) 的 web 层，接口路径与返回 JSON 与其保持一致），独立 go module，位于 `web/`：
+
+```bash
+cd web && go run .
+# 服务启动于 http://localhost:8080，静态图表页 http://localhost:8080/
+```
+
+统一响应格式：`{"code": 0, "message": "success", "data": ...}`（错误时 code=-1）。
+
+### 常用接口
+
+| 接口 | 说明 |
+|---|---|
+| `GET /api/quote?code=sz000001,sh600519` | 五档盘口（逗号分隔多标的） |
+| `GET /api/kline?code=sz000001&type=day` | K线（minute1/5/15/30/hour/day/week/month，日线默认前复权） |
+| `GET /api/kline-history?code=sz000001&type=day&limit=100&start_date=20250101&end_date=2025-03-01` | 历史K线（支持日期区间过滤，YYYYMMDD 或 YYYY-MM-DD） |
+| `GET /api/minute?code=sz000001[&date=20260930]` | 分时（可选历史日期） |
+| `GET /api/trade?code=sz000001[&date=20260930]` | 分时成交 |
+| `GET /api/trade-history/full?code=sz000001&start_date=...&end_date=...` | 跨日全量分时成交（按交易日遍历） |
+| `GET /api/search?keyword=银行` | 代码/名称搜索 |
+| `GET /api/stock-info?code=sz000001` | 聚合：盘口+日K+分时 |
+| `GET /api/codes / /api/stock-codes / /api/etf-codes / /api/etf` | 代码列表类 |
+| `GET /api/index?code=sh000001&type=day` / `GET /api/index/all` | 指数K线 |
+| `GET /api/market-stats / /api/market-count` | 市场统计 |
+| `GET /api/kline-all/tdx?code=sh600519&type=day` | 全量历史K线（通达信，自动翻页拼接） |
+| `GET /api/kline-all/ths?code=sh600519&type=day` | 全量历史K线（同花顺前复权） |
+| `GET /api/workday?date=20261001` / `GET /api/workday/range?start=&end=` | 交易日判定/区间（缓存未命中回退周末+节假日表） |
+| `GET /api/income?code=sz000001&start_date=2025-01-02&days=5,10` | 区间收益率 |
+| `POST /api/batch-quote` | 批量盘口（body: `{"codes":[...]}`，≤50只） |
+| `POST /api/tasks/pull-kline` / `POST /api/tasks/pull-trade` / `GET /api/tasks` | 数据拉取后台任务 |
+
+### 新增接口
+
+**`GET /tdx/hy`** — 全市场行业归属映射（调 `GetTdxHy`，解析 tdxhy.cfg：通达信行业 T 系 + 申万行业 X 系），支持 `?code=600519`（可逗号分隔）、`?market=sh|sz` 过滤：
+
+```json
+{
+  "code": 0, "message": "success",
+  "data": {
+    "count": 5667,
+    "list": [
+      {"market": "sz", "code": "000001", "name": "平安银行", "tdx_hy": "T1001", "sw_hy": "X500102"},
+      {"market": "sh", "code": "600519", "name": "贵州茅台", "tdx_hy": "T030501", "sw_hy": "X210205"}
+    ]
+  }
+}
+```
+
+**`GET /finance?exchange=sh&code=600519`** — 财务信息（调 `GetFinanceInfo`），`exchange` 取 `sh/sz/bj`（缺省 sz）：
+
+```json
+{
+  "code": 0, "message": "success",
+  "data": {
+    "market": 1, "code": "600519",
+    "liutong_guben": 1250081562.5, "zong_guben": 1250081562.5,
+    "ipo_date": 20010827, "updated_date": 20260630,
+    "jinglirun": 445168800000, "gudongrenshu": 296404,
+    "zongzichan": 3090507840000, "...": "其余约 25 个财务字段见 web/server_api_new.go"
+  }
+}
+```
+
+---
+
 ## 📦 板块与板块指数代码(id)
 
 板块成分文件(`block_*.dat`)本身**不含板块指数代码(id)**，id 映射在 `tdxzs.cfg`(全称)，而成分文件用简称，二者经 `tdxbk.cfg`(简称↔全称) 桥接。`GetBlockDataWithIndex` 自动完成关联(命中率约 100%)。
