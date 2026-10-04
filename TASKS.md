@@ -60,7 +60,11 @@
   - 上游连接池独立（poolSize=3，`WithRedial()`），与老接口的 client 互不影响
 - [x] 19. 端口支持 `PORT` 环境变量（缺省仍 `:8080`）
 - [x] 20. 实测：/count?exchange=sh、/quote?codes=多标的、/call_auction、/minute、/kline/day/all（6015 根）、/index/day/all（8736 根）、/code/all?exchange=sz（2MB）、/ex/markets、/spblock 全部 200 且格式为上游 `{"code":0,"msg":"ok",...}`；静态 UI `/` 与 /api/*、/tdx/hy、/finance 不受影响
-- 例外：`GET /`（上游 health）不挂载（`/` 保留静态 UI）；`/finance`、`/tdx/hy` 沿用本地 DTO 实现（参数一致）
+- 例外：`GET /`（上游 health）不挂载（`/` 保留静态 UI）
+- [x] 21. （用户追加决策）`/finance`、`/tdx/hy` 改为上游原生格式：从本地 DTO 实现切换为随上游挂载（76 条），删除 `web/server_api_new.go`（本地 handleGetTdxHy/handleGetFinance/financeDTO）。实测：
+  - /finance?exchange=sh&code=600519 → 原生 FinanceInfo（LiuTongGuBen=1250081562.5、IPODate=20010827 等，字段名 Go 原生大驼峰）
+  - /tdx/hy → 原生数组 5667 条，000001=T1001/X500102、600519=T030501/X210205 抽查正确
+  - 注意：本地 /api/* 信封是 {"code":0,"message":"success"}，上游族是 {"code":0,"msg":"ok"}，两族各自保持与参照物一致
 
 ## 测试环境备注
 

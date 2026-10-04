@@ -822,11 +822,7 @@ func main() {
 	http.HandleFunc("/api/tasks", handleListTasks)
 	http.HandleFunc("/api/tasks/", handleTaskOperations)
 
-	// 新增接口（新版协议库能力）
-	http.HandleFunc("/tdx/hy", handleGetTdxHy)
-	http.HandleFunc("/finance", handleGetFinance)
-
-	// 上游 extend/httpserver 接口 1:1 挂载（/finance、/tdx/hy 用本地实现，详见 upstream_api.go）
+	// 上游 extend/httpserver 接口 1:1 挂载（含 /finance、/tdx/hy，上游原生格式；详见 upstream_api.go）
 	mountUpstreamAPI()
 
 	port := os.Getenv("PORT")

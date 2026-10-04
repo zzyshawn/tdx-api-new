@@ -106,56 +106,55 @@ cd web && go run .
 | `POST /api/batch-quote` | 批量盘口（body: `{"codes":[...]}`，≤50只） |
 | `POST /api/tasks/pull-kline` / `POST /api/tasks/pull-trade` / `GET /api/tasks` | 数据拉取后台任务 |
 
-### 新增接口
+### /finance 与 /tdx/hy（上游原生格式）
 
-**`GET /tdx/hy`** — 全市场行业归属映射（调 `GetTdxHy`，解析 tdxhy.cfg：通达信行业 T 系 + 申万行业 X 系），支持 `?code=600519`（可逗号分隔）、`?market=sh|sz` 过滤：
+两条接口随上游 extend/httpserver 一并挂载（原生格式，信封 `{"code":0,"msg":"ok","data":...}`）。
+
+**`GET /finance?exchange=sh&code=600519`** — 财务信息（调 `GetFinanceInfo`），`exchange` 取 `sh/sz/bj`：
 
 ```json
 {
-  "code": 0, "message": "success",
+  "code": 0, "msg": "ok",
   "data": {
-    "count": 5667,
-    "list": [
-      {"market": "sz", "code": "000001", "name": "平安银行", "tdx_hy": "T1001", "sw_hy": "X500102"},
-      {"market": "sh", "code": "600519", "name": "贵州茅台", "tdx_hy": "T030501", "sw_hy": "X210205"}
-    ]
+    "Market": 1, "Code": "600519",
+    "LiuTongGuBen": 1250081562.5, "ZongGuBen": 1250081562.5,
+    "IPODate": 20010827, "UpdatedDate": 20260815,
+    "JingLiRun": 445168800000, "ZongZiChan": 3090507840000,
+    "...": "其余字段见 protocol/model_finance.go FinanceInfo"
   }
 }
 ```
 
-**`GET /finance?exchange=sh&code=600519`** — 财务信息（调 `GetFinanceInfo`），`exchange` 取 `sh/sz/bj`（缺省 sz）：
+**`GET /tdx/hy`** — 全市场行业归属映射（调 `GetTdxHy`，解析 tdxhy.cfg），返回原生数组（5667 条）：
 
 ```json
 {
-  "code": 0, "message": "success",
-  "data": {
-    "market": 1, "code": "600519",
-    "liutong_guben": 1250081562.5, "zong_guben": 1250081562.5,
-    "ipo_date": 20010827, "updated_date": 20260630,
-    "jinglirun": 445168800000, "gudongrenshu": 296404,
-    "zongzichan": 3090507840000, "...": "其余约 25 个财务字段见 web/server_api_new.go"
-  }
+  "code": 0, "msg": "ok",
+  "data": [
+    {"Market": 0, "Code": "000001", "TdxHy": "T1001", "SwHy": "X500102"},
+    {"Market": 1, "Code": "600519", "TdxHy": "T030501", "SwHy": "X210205"}
+  ]
 }
 ```
 
 ### 上游 extend/httpserver 接口（1:1 挂载）
 
-`web/` 服务同时把本仓库 `extend/httpserver` 的全部路由**原样挂载**（同路径、同参数、同响应格式 `{"code":0,"msg":"ok","data":...}`），实现见 `web/upstream_api.go`。共 74 条：
+`web/` 服务同时把本仓库 `extend/httpserver` 的全部路由**原样挂载**（同路径、同参数、同响应格式 `{"code":0,"msg":"ok","data":...}`），实现见 `web/upstream_api.go`。共 76 条：
 
 | 分类 | 路由 |
 |---|---|
 | 基础 | `/count` `/code` `/code/all` `/code/stocks` `/code/etfs` `/code/indexes` |
-| 行情 | `/quote` `/call_auction` `/gbbq` `/company/category` `/company/content` |
+| 行情 | `/quote` `/call_auction` `/gbbq` `/finance` `/company/category` `/company/content` |
 | 分时/成交 | `/minute` `/minute/history` `/trade` `/trade/all` `/trade/history` `/trade/history/day` |
 | K线 | `/kline` `/kline/all` + minute/5minute/15minute/30minute/60minute/day/week/month/quarter/year 各带 `/all` 共 22 条 |
 | 指数 | `/index` `/index/all` `/index/minute` `/index/5minute` `/index/15minute` `/index/30minute` `/index/60minute` `/index/day` `/index/day/all` `/index/week/all` `/index/month/all` `/index/quarter/all` `/index/year/all` |
-| 板块/报表 | `/block/data` `/block/data/index` `/block/file` `/report/file` `/zhb/files` `/tdx/zs` `/tdx/bk` `/tdx/stat` `/tdx/stat2` `/tdx/xgsg` `/spblock` |
+| 板块/报表 | `/block/data` `/block/data/index` `/block/file` `/report/file` `/zhb/files` `/tdx/zs` `/tdx/bk` `/tdx/stat` `/tdx/stat2` `/tdx/xgsg` `/tdx/hy` `/spblock` |
 | 扩展行情 | `/ex/markets` `/ex/count` `/ex/instruments` `/ex/quote` `/ex/quote_list` `/ex/bars` `/ex/minute` `/ex/minute/hist` `/ex/trade` `/ex/trade/hist` `/ex/bars/range` |
 
 说明：
 - 参数细节见 `extend/httpserver/handler.go`，如 `/count?exchange=sh`、`/quote?codes=sz000001,sh600519`、`/kline/day/all?code=sh600519`。
 - `/ex/*` 需要扩展行情连接（7727），启动时自动建立；连接失败自动降级为仅标准行情，不影响其余接口。
-- 例外：上游的 `GET /`（health）不挂载（`/` 保留静态图表页，健康检查用 `/api/health`）；`/finance`、`/tdx/hy` 沿用上方"新增接口"的本地实现（参数一致、字段为 DTO 格式）。
+- 例外：仅上游的 `GET /`（health）不挂载——`/` 保留静态图表页，健康检查用 `/api/health`。
 - 端口：默认 `:8080`，可用环境变量 `PORT` 覆盖（如 `PORT=8082 go run .`）。
 
 ---

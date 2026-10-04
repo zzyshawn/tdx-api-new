@@ -6,9 +6,7 @@ package main
 // 上游新增路由时，需同步此清单。
 //
 // 例外（不在挂载清单内）：
-//   - "GET /"        ：上游为 health 检查，本地保留老版静态 UI（/api/health 已覆盖健康检查）
-//   - "/finance"     ：本地已有实现（financeDTO 字段格式），参数一致（exchange+code）
-//   - "/tdx/hy"      ：本地已有实现（{count, list:[{code,name,tdx_hy,sw_hy}]} 格式）
+//   - "GET /"：上游为 health 检查，本地保留老版静态 UI（/api/health 已覆盖健康检查）
 
 import (
 	"log"
@@ -18,12 +16,12 @@ import (
 	"github.com/injoyai/tdx/extend/httpserver"
 )
 
-// upstreamRoutes 上游 httpserver 的全部路由（除 "GET /"、"/finance"、"/tdx/hy"）
+// upstreamRoutes 上游 httpserver 的全部路由（除 "GET /"）
 var upstreamRoutes = []string{
 	// 基础
 	"/count", "/code", "/code/all", "/code/stocks", "/code/etfs", "/code/indexes",
 	// 行情
-	"/quote", "/call_auction", "/gbbq", "/company/category", "/company/content",
+	"/quote", "/call_auction", "/gbbq", "/finance", "/company/category", "/company/content",
 	// 分时/成交
 	"/minute", "/minute/history", "/trade", "/trade/all", "/trade/history", "/trade/history/day",
 	// K线
@@ -46,7 +44,7 @@ var upstreamRoutes = []string{
 	// 板块/报表
 	"/block/data", "/block/data/index", "/block/file",
 	"/report/file", "/zhb/files",
-	"/tdx/zs", "/tdx/bk", "/tdx/stat", "/tdx/stat2", "/tdx/xgsg", "/spblock",
+	"/tdx/zs", "/tdx/bk", "/tdx/stat", "/tdx/stat2", "/tdx/xgsg", "/tdx/hy", "/spblock",
 	// 扩展行情（需扩展行情连接池，连接失败时自动降级不可用）
 	"/ex/markets", "/ex/count", "/ex/instruments", "/ex/quote", "/ex/quote_list",
 	"/ex/bars", "/ex/minute", "/ex/minute/hist", "/ex/trade", "/ex/trade/hist", "/ex/bars/range",
