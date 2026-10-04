@@ -8,5 +8,5 @@ echo "正在启动服务器..."
 echo ""
 
 cd "$(dirname "$0")"
-go run server.go
+go run .
 

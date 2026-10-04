@@ -261,13 +261,15 @@ func handleGetIndex(w http.ResponseWriter, r *http.Request) {
 	case "week":
 		resp, err = client.GetIndexWeekAll(code)
 		if resp != nil && len(resp.List) > int(limit) {
-			resp.List = resp.List[:limit]
+			// 取最新的 N 条（GetIndexWeekAll 返回全量升序，与 day 分支口径一致）
+			resp.List = resp.List[len(resp.List)-int(limit):]
 			resp.Count = limit
 		}
 	case "month":
 		resp, err = client.GetIndexMonthAll(code)
 		if resp != nil && len(resp.List) > int(limit) {
-			resp.List = resp.List[:limit]
+			// 取最新的 N 条（GetIndexMonthAll 返回全量升序，与 day 分支口径一致）
+			resp.List = resp.List[len(resp.List)-int(limit):]
 			resp.Count = limit
 		}
 	case "day":
