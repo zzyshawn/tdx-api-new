@@ -1,0 +1,19 @@
+# 构建上下文瘦身：这些内容不进镜像
+.git
+.github
+.workbuddy
+output
+docs
+example
+extend/lib
+lib
+**/*.exe
+**/*.db
+**/*.log
+**/server_old_test*
+*.rar
+*.zip
+*.md
+!README.md
+TASKS.md
+PROJECT_RULES.md

@@ -1,0 +1,26 @@
+services:
+  tdx-web:
+    # 镜像版本严格管理：代码变更必须 bump tag，避免复用陈旧镜像
+    image: tdx-api-new-web:1.0.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tdx-api-new-web
+    # 宿主机端口若被占用（如 8080 已有服务），只改左侧映射，勿动容器内端口
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      # 代码库/交易日/除权 sqlite 持久化，容器升级不丢缓存
+      - ./data/database:/app/data/database
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.tdx.description=TDX 行情 REST 服务（/api/* + 上游 extend/httpserver 76 条）"
+      - "com.tdx.version=1.0.0"
