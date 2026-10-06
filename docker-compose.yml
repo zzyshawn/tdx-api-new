@@ -13,8 +13,14 @@ services:
     environment:
       - TZ=Asia/Shanghai
     volumes:
-      # 代码库/交易日/除权 sqlite 持久化，容器升级不丢缓存
-      - ./data/database:/app/data/database
+      # 代码库/交易日/除权 sqlite 持久化（均为可再生成缓存）。
+      # 用命名卷而非 bind 挂载：宿主目录 bind 进来是 root 属主，
+      # 容器内非 root 的 appuser(1000) 写不了会报
+      # "unable to open database file: out of memory (14)"（sqlite 的 14=CANTOPEN 误报文案）
+      - tdx-dbdata:/app/data/database
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
       interval: 30s
@@ -24,3 +30,6 @@ services:
     labels:
       - "com.tdx.description=TDX 行情 REST 服务（/api/* + 上游 extend/httpserver 76 条）"
       - "com.tdx.version=1.0.0"
+
+volumes:
+  tdx-dbdata:
