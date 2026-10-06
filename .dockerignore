@@ -1,12 +1,11 @@
 # 构建上下文瘦身：这些内容不进镜像
+# 注意：lib/ 必须保留（codes.go 引 lib/xorms，extend 引 lib/bse），不能排除
 .git
 .github
 .workbuddy
 output
 docs
 example
-extend/lib
-lib
 **/*.exe
 **/*.db
 **/*.log
